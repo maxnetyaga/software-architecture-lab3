@@ -1,4 +1,4 @@
-module github.com/roman-mazur/architecture-lab-3
+module github.com/maxnetyaga/software-architecture-lab3
 
 go 1.24
 
