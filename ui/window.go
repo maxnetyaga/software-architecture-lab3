@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 	"log"
@@ -15,6 +16,8 @@ import (
 	"golang.org/x/mobile/event/paint"
 	"golang.org/x/mobile/event/size"
 )
+
+type Window screen.Window
 
 type Visualizer struct {
 	Title         string
@@ -43,8 +46,8 @@ func (pw *Visualizer) Update(t screen.Texture) {
 
 func (pw *Visualizer) run(s screen.Screen) {
 	w, err := s.NewWindow(&screen.NewWindowOptions{
-		Title: pw.Title,
-		Width: 800,
+		Title:  pw.Title,
+		Width:  800,
 		Height: 800,
 	})
 	if err != nil {
@@ -136,9 +139,36 @@ func (pw *Visualizer) drawDefaultUI() {
 	pw.w.Fill(pw.sz.Bounds(), color.White, draw.Src) // Фон.
 
 	// TODO: Змінити колір фону та додати відображення фігури у вашому варіанті.
+	fmt.Println(pw.sz.Bounds())
+	pw.drawFigure(image.Point{400, 400}, 400, color.RGBA{255, 240, 0, 255})
 
 	// Малювання білої рамки.
 	for _, br := range imageutil.Border(pw.sz.Bounds(), 10) {
 		pw.w.Fill(br, color.White, draw.Src)
 	}
+}
+
+func (pw *Visualizer) drawFigure(centerPoint image.Point, size int, color color.Color) {
+	startPoint1 := image.Point{
+		X: centerPoint.X - size/4,
+		Y: centerPoint.Y - size/2,
+	}
+	endPoint1 := image.Point{
+		X: centerPoint.X + size/4,
+		Y: centerPoint.Y + size/2,
+	}
+	startPoint2 := image.Point{
+		X: centerPoint.X - size/2,
+		Y: centerPoint.Y - size/4,
+	}
+	endPoint2 := image.Point{
+		X: centerPoint.X + size/2,
+		Y: centerPoint.Y + size/4,
+	}
+
+	rectangle1 := image.Rectangle{Min: startPoint1, Max: endPoint1}
+	rectangle2 := image.Rectangle{Min: startPoint2, Max: endPoint2}
+
+	pw.w.Fill(rectangle1, color, draw.Src)
+	pw.w.Fill(rectangle2, color, draw.Src)
 }
