@@ -5,12 +5,11 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"fmt"
 
 	"github.com/maxnetyaga/software-architecture-lab3/painter"
 )
 
-// HttpHandler конструює обробник HTTP запитів, який дані з запиту віддає у Parser, а потім відправляє отриманий список
-// операцій у painter.Loop.
 func HttpHandler(loop *painter.Loop, p *Parser) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		var in io.Reader = r.Body
@@ -22,10 +21,15 @@ func HttpHandler(loop *painter.Loop, p *Parser) http.Handler {
 		if err != nil {
 			log.Printf("Bad script: %s", err)
 			rw.WriteHeader(http.StatusBadRequest)
+			rw.Write([]byte(fmt.Sprintf("Error parsing commands: %s", err)))
 			return
 		}
 
-		loop.Post(painter.OperationList(cmds))
+		for _, cmd := range cmds {
+			loop.Post(cmd)
+		}
+
 		rw.WriteHeader(http.StatusOK)
+		rw.Write([]byte("Commands received and posted to the event loop"))
 	})
 }
