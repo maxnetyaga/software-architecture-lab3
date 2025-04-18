@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/maxnetyaga/software-architecture-lab3/painter"
@@ -10,22 +11,23 @@ import (
 
 func main() {
 	var (
-		pv ui.Visualizer // Візуалізатор створює вікно та малює у ньому.
+		pv ui.Visualizer
 
-		// Потрібні для частини 2.
-		opLoop painter.Loop // Цикл обробки команд.
-		parser lang.Parser  // Парсер команд.
+		opLoop painter.Loop
+		parser lang.Parser
 	)
 
-	//pv.Debug = true
-	pv.Title = "Simple painter"
+	pv.Debug = true
+	pv.Title = "Simple painter (Variant 5)"
 
 	pv.OnScreenReady = opLoop.Start
 	opLoop.Receiver = &pv
 
+	opLoop.Done = make(chan struct{})
+
 	go func() {
 		http.Handle("/", lang.HttpHandler(&opLoop, &parser))
-		_ = http.ListenAndServe("localhost:17000", nil)
+		log.Fatal(http.ListenAndServe("localhost:17000", nil))
 	}()
 
 	pv.Main()
