@@ -1,7 +1,6 @@
 package ui
 
 import (
-	"fmt"
 	"image"
 	"image/color"
 	"log"
@@ -17,8 +16,6 @@ import (
 	"golang.org/x/mobile/event/size"
 )
 
-type Window screen.Window
-
 type Visualizer struct {
 	Title         string
 	Debug         bool
@@ -29,25 +26,13 @@ type Visualizer struct {
 	done chan struct{}
 
 	sz  size.Event
-	pos image.Rectangle
-
-	windowSize int
-
-	defFigureSize  int
-	defFigureColor color.Color
+	figureCenter image.Point
 }
 
 func (pw *Visualizer) Main() {
 	pw.tx = make(chan screen.Texture)
 	pw.done = make(chan struct{})
-	pw.pos.Max.X = 200
-	pw.pos.Max.Y = 200
-
-	pw.windowSize = 800
-
-	pw.defFigureSize = 400
-	pw.defFigureColor = color.RGBA{255, 240, 0, 255}
-
+	pw.figureCenter = image.Point{X: 400, Y: 400}
 	driver.Main(pw.run)
 }
 
@@ -57,9 +42,9 @@ func (pw *Visualizer) Update(t screen.Texture) {
 
 func (pw *Visualizer) run(s screen.Screen) {
 	w, err := s.NewWindow(&screen.NewWindowOptions{
-		Title:  pw.Title,
-		Width:  pw.windowSize,
-		Height: pw.windowSize,
+		Title: pw.Title,
+		Width: 800,
+		Height: 800,
 	})
 	if err != nil {
 		log.Fatal("Failed to initialize the app window:", err)
@@ -110,11 +95,11 @@ func detectTerminate(e any) bool {
 	switch e := e.(type) {
 	case lifecycle.Event:
 		if e.To == lifecycle.StageDead {
-			return true // Window destroy initiated.
+			return true
 		}
 	case key.Event:
 		if e.Code == key.CodeEscape {
-			return true // Esc pressed.
+			return true
 		}
 	}
 	return false
@@ -123,32 +108,22 @@ func detectTerminate(e any) bool {
 func (pw *Visualizer) handleEvent(e any, t screen.Texture) {
 	switch e := e.(type) {
 
-	case size.Event: // Оновлення даних про розмір вікна.
+	case size.Event:
 		pw.sz = e
 
 	case error:
 		log.Printf("ERROR: %s", e)
 
 	case mouse.Event:
-		if t == nil {
-			// Реакція на натискання кнопки миші.
-			if e.Button == 1 {
-				pw.w.Fill(pw.sz.Bounds(), color.White, draw.Src)
-
-				pw.drawFigure(
-					image.Point{int(e.X), int(e.Y)},
-					pw.defFigureSize,
-					pw.defFigureColor,
-				)
-			}
+		if e.Button == mouse.ButtonLeft && e.Direction == mouse.DirPress {
+			pw.figureCenter = image.Point{X: int(e.X), Y: int(e.Y)}
+			pw.w.Send(paint.Event{})
 		}
 
 	case paint.Event:
-		// Малювання контенту вікна.
 		if t == nil {
 			pw.drawDefaultUI()
 		} else {
-			// Використання текстури отриманої через виклик Update.
 			pw.w.Scale(pw.sz.Bounds(), t, t.Bounds(), draw.Src, nil)
 		}
 		pw.w.Publish()
@@ -156,39 +131,25 @@ func (pw *Visualizer) handleEvent(e any, t screen.Texture) {
 }
 
 func (pw *Visualizer) drawDefaultUI() {
-	pw.w.Fill(pw.sz.Bounds(), color.White, draw.Src) // Фон.
+	pw.w.Fill(pw.sz.Bounds(), color.White, draw.Src)
 
-	// Відображення фігури.
-	fmt.Println(pw.sz.Bounds())
-	pw.drawFigure(image.Point{400, 400}, pw.defFigureSize, pw.defFigureColor)
-
-	// Малювання білої рамки.
 	for _, br := range imageutil.Border(pw.sz.Bounds(), 10) {
 		pw.w.Fill(br, color.White, draw.Src)
 	}
-}
 
-func (pw *Visualizer) drawFigure(centerPoint image.Point, size int, color color.Color) {
-	startPoint1 := image.Point{
-		X: centerPoint.X - size/4,
-		Y: centerPoint.Y - size/2,
+	figureColor := color.RGBA{R: 255, G: 255, B: 0, A: 255}
+	figureSize := 200
+
+	halfFigureSize := figureSize / 2
+	horizontalRect := image.Rectangle{
+		Min: image.Point{X: pw.figureCenter.X - halfFigureSize, Y: pw.figureCenter.Y - halfFigureSize/3},
+		Max: image.Point{X: pw.figureCenter.X + halfFigureSize, Y: pw.figureCenter.Y + halfFigureSize/3},
 	}
-	endPoint1 := image.Point{
-		X: centerPoint.X + size/4,
-		Y: centerPoint.Y + size/2,
-	}
-	startPoint2 := image.Point{
-		X: centerPoint.X - size/2,
-		Y: centerPoint.Y - size/4,
-	}
-	endPoint2 := image.Point{
-		X: centerPoint.X + size/2,
-		Y: centerPoint.Y + size/4,
+	verticalRect := image.Rectangle{
+		Min: image.Point{X: pw.figureCenter.X - halfFigureSize/3, Y: pw.figureCenter.Y - halfFigureSize},
+		Max: image.Point{X: pw.figureCenter.X + halfFigureSize/3, Y: pw.figureCenter.Y + halfFigureSize},
 	}
 
-	rectangle1 := image.Rectangle{Min: startPoint1, Max: endPoint1}
-	rectangle2 := image.Rectangle{Min: startPoint2, Max: endPoint2}
-
-	pw.w.Fill(rectangle1, color, draw.Src)
-	pw.w.Fill(rectangle2, color, draw.Src)
+	pw.w.Fill(horizontalRect, figureColor, draw.Src)
+	pw.w.Fill(verticalRect, figureColor, draw.Src)
 }
