@@ -1,4 +1,4 @@
-# Software architecture: Lab 3 (Varian#5)
+# Software architecture: Lab 3 (Variant#5)
 
 ## Task
 
